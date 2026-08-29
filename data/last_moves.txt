@@ -1,0 +1,2 @@
+e2e4: @player2
+Start game: @player1
