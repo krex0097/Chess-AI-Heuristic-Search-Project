@@ -1,0 +1,10 @@
+[Event "@player1's Online Open Chess Tournament"]
+[Site "https://github.com/player1/player1"]
+[Date "2026.10.28"]
+[Round "1"]
+[White "?"]
+[Black "?"]
+[Result "1-0"]
+
+1. e4 { @player1 } 1... e5 { @player2 } 2. Qh5 { @player1 } 2... Nc6 { @player2 } 3. Bc4 { @player1 } 3... Nf6 { @player2 } 4. Qxf7# { @player1 } 1-0
+
