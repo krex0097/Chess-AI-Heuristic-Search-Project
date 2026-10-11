@@ -162,8 +162,12 @@ def get_pst_bonus(piece_type, square, color):
     return table[idx]
 
 
+# ---------------------------------------------------------------------------
+#  Evaluation Components
+# ---------------------------------------------------------------------------
 
 def evaluate_material(board):
+    """Calculates pure material balance in centipawns (+ White, - Black)."""
     score = 0
     for sq in chess.SQUARES:
         piece = board.piece_at(sq)
@@ -172,7 +176,9 @@ def evaluate_material(board):
             score += val if piece.color == chess.WHITE else -val
     return score
 
+
 def evaluate_pst(board):
+    """Calculates Piece-Square Table positional bonuses (+ White, - Black)."""
     score = 0
     for sq in chess.SQUARES:
         piece = board.piece_at(sq)
@@ -181,9 +187,184 @@ def evaluate_pst(board):
             score += val if piece.color == chess.WHITE else -val
     return score
 
-def evaluate_position(board, mode="full"):
+
+def evaluate_center_control(board):
+    """
+    Measures center control:
+    - Inner center squares (d4, e4, d5, e5): 15 cp each
+    - Outer center squares: 4 cp each
+    Accounts for both physical piece occupation and attack coverage.
+    """
+    score = 0
+    # Occupation
+    for sq in INNER_CENTER:
+        p = board.piece_at(sq)
+        if p:
+            score += 15 if p.color == chess.WHITE else -15
+    for sq in OUTER_CENTER:
+        p = board.piece_at(sq)
+        if p:
+            score += 4 if p.color == chess.WHITE else -4
+
+    # Attack pressure
+    for sq in INNER_CENTER:
+        w_att = len(board.attackers(chess.WHITE, sq))
+        b_att = len(board.attackers(chess.BLACK, sq))
+        score += (w_att - b_att) * 6
+
+    return score
+
+
+def evaluate_mobility(board):
+    """
+    Piece mobility bonus: counts the number of pseudo-legal moves available
+    to each side. More mobile pieces signify better coordination and board influence.
+    Reward ~2 centipawns per move difference.
+    """
+    # Temporarily check moves from current turn
+    curr_turn = board.turn
+    board.turn = chess.WHITE
+    white_moves = board.legal_moves.count()
+    board.turn = chess.BLACK
+    black_moves = board.legal_moves.count()
+    board.turn = curr_turn
+
+    return (white_moves - black_moves) * 2
+
+
+def evaluate_king_safety(board):
+    """
+    Evaluates king safety:
+    - Pawn shield: checks pawns directly in front of the castled king (10 cp per shield pawn).
+    - Open files near the king: penalizes rooks/queens aiming at exposed king files (-15 cp).
+    """
+    score = 0
+    w_king_sq = board.king(chess.WHITE)
+    b_king_sq = board.king(chess.BLACK)
+
+    if w_king_sq is not None:
+        w_file = chess.square_file(w_king_sq)
+        w_rank = chess.square_rank(w_king_sq)
+        # Check shield pawns on rank 2/3 for White if castled (file 1-2 or 6-7)
+        if w_rank <= 1 and (w_file <= 2 or w_file >= 5):
+            shield_files = [f for f in (w_file - 1, w_file, w_file + 1) if 0 <= f <= 7]
+            for f in shield_files:
+                for r in (1, 2):
+                    sq = chess.square(f, r)
+                    p = board.piece_at(sq)
+                    if p and p.piece_type == chess.PAWN and p.color == chess.WHITE:
+                        score += 10
+
+    if b_king_sq is not None:
+        b_file = chess.square_file(b_king_sq)
+        b_rank = chess.square_rank(b_king_sq)
+        if b_rank >= 6 and (b_file <= 2 or b_file >= 5):
+            shield_files = [f for f in (b_file - 1, b_file, b_file + 1) if 0 <= f <= 7]
+            for f in shield_files:
+                for r in (6, 5):
+                    sq = chess.square(f, r)
+                    p = board.piece_at(sq)
+                    if p and p.piece_type == chess.PAWN and p.color == chess.BLACK:
+                        score -= 10
+
+    return score
+
+
+def evaluate_position_breakdown(board, mode="full"):
+    """
+    Returns an academic breakdown dictionary of the heuristic evaluation.
+    mode="full": Material + PST + Center + Mobility + King Safety
+    mode="material": Pure material baseline (no positional terms)
+    """
+    # 1. Terminal conditions
     if board.is_checkmate():
-        return -CHECKMATE_SCORE if board.turn == chess.WHITE else CHECKMATE_SCORE
-    if board.is_stalemate() or board.is_insufficient_material():
-        return 0
-    return evaluate_material(board) + evaluate_pst(board)
+        # The player whose turn it is has been checkmated
+        if board.turn == chess.WHITE:
+            return {
+                "total": -CHECKMATE_SCORE,
+                "material": 0,
+                "pst": 0,
+                "center": 0,
+                "mobility": 0,
+                "king_safety": 0,
+                "is_terminal": True,
+                "terminal_reason": "Black delivered checkmate",
+            }
+        else:
+            return {
+                "total": CHECKMATE_SCORE,
+                "material": 0,
+                "pst": 0,
+                "center": 0,
+                "mobility": 0,
+                "king_safety": 0,
+                "is_terminal": True,
+                "terminal_reason": "White delivered checkmate",
+            }
+
+    if board.is_stalemate():
+        return {
+            "total": 0,
+            "material": 0,
+            "pst": 0,
+            "center": 0,
+            "mobility": 0,
+            "king_safety": 0,
+            "is_terminal": True,
+            "terminal_reason": "Stalemate (draw)",
+        }
+
+    if board.is_insufficient_material() or board.is_seventyfive_moves() or board.is_fivefold_repetition():
+        return {
+            "total": 0,
+            "material": 0,
+            "pst": 0,
+            "center": 0,
+            "mobility": 0,
+            "king_safety": 0,
+            "is_terminal": True,
+            "terminal_reason": "Draw by chess rules",
+        }
+
+    # 2. Heuristic terms
+    mat_score = evaluate_material(board)
+
+    if mode == "material":
+        return {
+            "total": mat_score,
+            "material": mat_score,
+            "pst": 0,
+            "center": 0,
+            "mobility": 0,
+            "king_safety": 0,
+            "is_terminal": False,
+            "terminal_reason": None,
+        }
+
+    pst_score = evaluate_pst(board)
+    center_score = evaluate_center_control(board)
+    mobility_score = evaluate_mobility(board)
+    king_score = evaluate_king_safety(board)
+
+    total = mat_score + pst_score + center_score + mobility_score + king_score
+
+    return {
+        "total": total,
+        "material": mat_score,
+        "pst": pst_score,
+        "center": center_score,
+        "mobility": mobility_score,
+        "king_safety": king_score,
+        "is_terminal": False,
+        "terminal_reason": None,
+    }
+
+
+def evaluate_position(board, mode="full"):
+    """
+    Static evaluation function. Returns integer score from White's POV.
+    """
+    breakdown = evaluate_position_breakdown(board, mode)
+    return breakdown["total"]
+
+
