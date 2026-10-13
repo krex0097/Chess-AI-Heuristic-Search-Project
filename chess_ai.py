@@ -368,3 +368,105 @@ def evaluate_position(board, mode="full"):
     return breakdown["total"]
 
 
+# ---------------------------------------------------------------------------
+#  Move Ordering (Optimizes Alpha-Beta Pruning Efficiency)
+# ---------------------------------------------------------------------------
+
+def _move_score(board, move):
+    """
+    Heuristic move ordering:
+    - MVV-LVA (Most Valuable Victim - Least Valuable Attacker) for captures.
+    - Pawn promotions given high priority.
+    - Castling given a small development bonus.
+    """
+    score = 0
+    if board.is_capture(move):
+        victim = board.piece_at(move.to_square)
+        attacker = board.piece_at(move.from_square)
+        if victim and attacker:
+            score += 10 * PIECE_VALUES.get(victim.piece_type, 0) - PIECE_VALUES.get(attacker.piece_type, 0)
+        else:
+            score += 300  # e.g., en-passant
+    if move.promotion:
+        score += PIECE_VALUES.get(move.promotion, 900)
+    if board.is_castling(move):
+        score += 80
+    return score
+
+
+def generate_ordered_legal_moves(board):
+    """Returns legal moves sorted with promising moves first to maximize alpha-beta cuts."""
+    moves = list(board.legal_moves)
+    moves.sort(key=lambda m: _move_score(board, m), reverse=True)
+    return moves
+
+
+# ---------------------------------------------------------------------------
+#  Search Statistics Accumulator
+# ---------------------------------------------------------------------------
+
+class SearchStats:
+    """Collects observable metrics during the game tree search."""
+    def __init__(self):
+        self.nodes_visited = 0
+        self.leaves_evaluated = 0
+        self.alpha_beta_cuts = 0
+        self.depth = 0
+        self.elapsed_ms = 0.0
+        self.best_move = None
+        self.best_score = 0
+        self.top_moves = []         # [(uci_str, san_str, minimax_score, static_score), ...]
+        self.algorithm = "alphabeta"  # "alphabeta" or "minimax"
+        self.heuristic_mode = "full"  # "full" or "material"
+        self.explanation = ""
+        self.breakdown = {}
+
+
+# ---------------------------------------------------------------------------
+#  Search Algorithms: DFS Pure Minimax & Minimax with Alpha-Beta Pruning
+# ---------------------------------------------------------------------------
+
+def pure_minimax(board, depth, is_maximizing, stats, heuristic_mode="full"):
+    """
+    Pure Depth-First Search (DFS) Minimax without pruning.
+    Visits every reachable node up to depth limit. Ideal for teaching
+    the foundational concept of minimax adversarial decision making.
+    """
+    stats.nodes_visited += 1
+
+    # Base cases: depth limit reached or terminal state found
+    if depth == 0 or board.is_game_over():
+        stats.leaves_evaluated += 1
+        raw = evaluate_position(board, heuristic_mode)
+        # Factor in depth to prefer faster mates and delay forced losses
+        if raw >= CHECKMATE_SCORE:
+            return raw + depth
+        if raw <= -CHECKMATE_SCORE:
+            return raw - depth
+        return raw
+
+    moves = list(board.legal_moves)
+    if not moves:
+        stats.leaves_evaluated += 1
+        return evaluate_position(board, heuristic_mode)
+
+    if is_maximizing:
+        best_val = -CHECKMATE_SCORE * 2
+        for move in moves:
+            board.push(move)
+            val = pure_minimax(board, depth - 1, False, stats, heuristic_mode)
+            board.pop()
+            if val > best_val:
+                best_val = val
+        return best_val
+    else:
+        best_val = CHECKMATE_SCORE * 2
+        for move in moves:
+            board.push(move)
+            val = pure_minimax(board, depth - 1, True, stats, heuristic_mode)
+            board.pop()
+            if val < best_val:
+                best_val = val
+        return best_val
+
+
