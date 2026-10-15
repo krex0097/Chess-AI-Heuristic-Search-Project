@@ -470,3 +470,56 @@ def pure_minimax(board, depth, is_maximizing, stats, heuristic_mode="full"):
         return best_val
 
 
+def alphabeta_search(board, depth, alpha, beta, is_maximizing, stats, heuristic_mode="full"):
+    """
+    Depth-First Search (DFS) Minimax with Alpha-Beta Pruning.
+    Yields the exact same decision and minimax value as pure minimax,
+    while pruning branches that cannot affect the outcome.
+    """
+    stats.nodes_visited += 1
+
+    # Base cases
+    if depth == 0 or board.is_game_over():
+        stats.leaves_evaluated += 1
+        raw = evaluate_position(board, heuristic_mode)
+        if raw >= CHECKMATE_SCORE:
+            return raw + depth
+        if raw <= -CHECKMATE_SCORE:
+            return raw - depth
+        return raw
+
+    moves = generate_ordered_legal_moves(board)
+    if not moves:
+        stats.leaves_evaluated += 1
+        return evaluate_position(board, heuristic_mode)
+
+    if is_maximizing:
+        best_val = -CHECKMATE_SCORE * 2
+        for move in moves:
+            board.push(move)
+            val = alphabeta_search(board, depth - 1, alpha, beta, False, stats, heuristic_mode)
+            board.pop()
+            if val > best_val:
+                best_val = val
+            if best_val > alpha:
+                alpha = best_val
+            if beta <= alpha:
+                stats.alpha_beta_cuts += 1
+                break  # Beta cutoff
+        return best_val 
+    else:
+        best_val = CHECKMATE_SCORE * 2
+        for move in moves:
+            board.push(move)
+            val = alphabeta_search(board, depth - 1, alpha, beta, True, stats, heuristic_mode)
+            board.pop()
+            if val < best_val:
+                best_val = val
+            if best_val < beta:
+                beta = best_val
+            if beta <= alpha:
+                stats.alpha_beta_cuts += 1
+                break  # Alpha cutoff
+        return best_val
+
+
