@@ -523,3 +523,132 @@ def alphabeta_search(board, depth, alpha, beta, is_maximizing, stats, heuristic_
         return best_val
 
 
+# ---------------------------------------------------------------------------
+#  Primary AI Decision Entry Point
+# ---------------------------------------------------------------------------
+
+def find_best_move(board, depth=3, algorithm="alphabeta", heuristic_mode="full"):
+    """
+    Searches the game tree from board position to depth plies and selects
+    the optimal move using Minimax decision-making.
+
+    Parameters:
+    -----------
+    board          : chess.Board instance
+    depth          : search ply limit (>= 1)
+    algorithm      : 'alphabeta' (pruned DFS) or 'minimax' (pure unpruned DFS)
+    heuristic_mode : 'full' (enhanced positional) or 'material' (baseline)
+
+    Returns:
+    --------
+    SearchStats containing chosen move, statistics, candidate rankings, and explanation.
+    """
+    stats = SearchStats()
+    stats.depth = depth
+    stats.algorithm = algorithm
+    stats.heuristic_mode = heuristic_mode
+
+    # White is maximizing (+), Black is minimizing (-)
+    is_white = (board.turn == chess.WHITE)
+    best_score = -CHECKMATE_SCORE * 2 if is_white else CHECKMATE_SCORE * 2
+    best_move = None
+    candidate_records = []
+
+    alpha = -CHECKMATE_SCORE * 2
+    beta  =  CHECKMATE_SCORE * 2
+
+    start_time = time.perf_counter()
+    legal_moves = generate_ordered_legal_moves(board)
+
+    for move in legal_moves:
+        # Measure static evaluation of the hypothetical immediate position
+        board.push(move)
+        static_leaf_score = evaluate_position(board, heuristic_mode)
+
+        if algorithm == "minimax":
+            score = pure_minimax(board, depth - 1, not is_white, stats, heuristic_mode)
+        else:
+            score = alphabeta_search(board, depth - 1, alpha, beta, not is_white, stats, heuristic_mode)
+        board.pop()
+
+        # Generate standard algebraic notation (SAN) safely
+        try:
+            san = board.san(move)
+        except Exception:
+            san = move.uci()
+
+        candidate_records.append((move, san, score, static_leaf_score))
+
+        if is_white:
+            if score > best_score:
+                best_score = score
+                best_move = move
+            alpha = max(alpha, best_score)
+        else:
+            if score < best_score:
+                best_score = score
+                best_move = move
+            beta = min(beta, best_score)
+
+    elapsed_sec = time.perf_counter() - start_time
+    stats.elapsed_ms = elapsed_sec * 1000.0
+    stats.best_move = best_move
+    stats.best_score = best_score
+
+    # Sort candidate moves best-first according to the player's goal
+    candidate_records.sort(key=lambda item: item[2], reverse=is_white)
+    stats.top_moves = [
+        {
+            "uci": m.uci(),
+            "san": s,
+            "minimax_score": sc,
+            "static_score": st,
+        }
+        for m, s, sc, st in candidate_records[:6]
+    ]
+
+    # Generate academic breakdown and explanation of resulting board position
+    if best_move:
+        board.push(best_move)
+        breakdown = evaluate_position_breakdown(board, heuristic_mode)
+        board.pop()
+        stats.breakdown = breakdown
+        stats.explanation = format_viva_explanation(best_move, best_score, depth, algorithm, heuristic_mode, breakdown, is_white)
+    else:
+        stats.explanation = "No legal moves available."
+
+    return stats
+
+
+def format_viva_explanation(move, score, depth, algorithm, mode, breakdown, is_white):
+    """Formats an academically rigorous explanation for viva presentation."""
+    side = "White" if is_white else "Black"
+    alg_name = "Minimax with Alpha-Beta Pruning" if algorithm == "alphabeta" else "Pure Depth-First Minimax"
+
+    if abs(score) >= CHECKMATE_SCORE:
+        steps_to_mate = (CHECKMATE_SCORE + depth - abs(score)) if abs(score) > CHECKMATE_SCORE else 1
+        winner = "White" if score > 0 else "Black"
+        return f"{side} selected {move.uci()} utilizing {alg_name} (depth {depth}). A forced checkmate for {winner} was identified within {steps_to_mate} plies."
+
+    adv = "White" if score > 0 else "Black" if score < 0 else "Neither"
+    pawn_equiv = abs(score) / 100.0
+
+    lines = [
+        f"Algorithm: {alg_name} explored {depth} plies ahead.",
+        f"Selected move {move.uci()} achieves backed-up Minimax value of {score:+d} cp (~{pawn_equiv:.2f} pawns favor {adv}).",
+    ]
+
+    if mode == "full":
+        lines.append(
+            f"Evaluation components: Material ({breakdown['material']:+d} cp), "
+            f"Piece Placement ({breakdown['pst']:+d} cp), "
+            f"Center Pressure ({breakdown['center']:+d} cp), "
+            f"Mobility ({breakdown['mobility']:+d} cp), "
+            f"King Safety ({breakdown['king_safety']:+d} cp)."
+        )
+    else:
+        lines.append(f"Evaluation mode: Material-only baseline ({breakdown['material']:+d} cp).")
+
+    return " ".join(lines)
+
+
