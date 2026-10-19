@@ -652,3 +652,127 @@ def format_viva_explanation(move, score, depth, algorithm, mode, breakdown, is_w
     return " ".join(lines)
 
 
+# ---------------------------------------------------------------------------
+#  Experiment Mode: Multi-Depth & Heuristic Comparison
+# ---------------------------------------------------------------------------
+
+def run_experiment(board, depths=(1, 2, 3), algorithm="alphabeta", heuristic_mode="full"):
+    """
+    Evaluates the exact same position across multiple depths.
+    Demonstrates search time scaling, node expansion rate, and decision consistency.
+    """
+    results = []
+    for d in depths:
+        b_copy = board.copy()
+        stats = find_best_move(b_copy, depth=d, algorithm=algorithm, heuristic_mode=heuristic_mode)
+        results.append(stats)
+    return results
+
+
+def compare_heuristics_benchmark(board, depth=2):
+    """
+    Runs a side-by-side comparison between Material-Only baseline and Full Heuristic.
+    """
+    baseline_stats = find_best_move(board.copy(), depth=depth, algorithm="alphabeta", heuristic_mode="material")
+    full_stats     = find_best_move(board.copy(), depth=depth, algorithm="alphabeta", heuristic_mode="full")
+    return {
+        "baseline": baseline_stats,
+        "full": full_stats,
+    }
+
+
+# ---------------------------------------------------------------------------
+#  Teaching & Demonstration: Game Tree Snapshot Generation
+# ---------------------------------------------------------------------------
+
+def build_tree_snapshot(board, depth=2, max_children=4, heuristic_mode="full"):
+    """
+    Constructs a JSON-serializable game tree representation limited in depth
+    and branching factor so students and examiners can inspect DFS recursion,
+    leaf static evaluations, and backed-up Minimax propagation.
+    """
+    target_depth = max(1, min(depth, 3))
+    root_maximizing = (board.turn == chess.WHITE)
+
+    def _recurse(b, current_ply, is_max):
+        static_score = evaluate_position(b, heuristic_mode)
+        node = {
+            "fen": b.fen(),
+            "ply": current_ply,
+            "static_score": static_score,
+            "is_max": is_max,
+            "move": None,
+            "san": None,
+            "children": [],
+            "minimax_score": None,
+        }
+
+        if current_ply >= target_depth or b.is_game_over():
+            node["minimax_score"] = static_score
+            return node
+
+        moves = generate_ordered_legal_moves(b)[:max_children]
+        child_scores = []
+        for m in moves:
+            san = b.san(m)
+            b.push(m)
+            child = _recurse(b, current_ply + 1, not is_max)
+            child["move"] = m.uci()
+            child["san"] = san
+            node["children"].append(child)
+            child_scores.append(child["minimax_score"])
+            b.pop()
+
+        if child_scores:
+            node["minimax_score"] = max(child_scores) if is_max else min(child_scores)
+        else:
+            node["minimax_score"] = static_score
+
+        return node
+
+    return _recurse(board.copy(), 0, root_maximizing)
+
+
+# ---------------------------------------------------------------------------
+#  Command-Line Interface (for testing and direct demonstration)
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Academic Chess Heuristic Search AI")
+    parser.add_argument("--fen", type=str, default=chess.STARTING_FEN, help="FEN string of position")
+    parser.add_argument("--depth", type=int, default=3, help="Search depth in plies")
+    parser.add_argument("--alg", choices=["alphabeta", "minimax"], default="alphabeta", help="Algorithm choice")
+    parser.add_argument("--heuristic", choices=["full", "material"], default="full", help="Heuristic mode")
+    parser.add_argument("--experiment", action="store_true", help="Run multi-depth experiment")
+
+    args = parser.parse_args()
+    demo_board = chess.Board(args.fen)
+
+    print("=" * 65)
+    print("  AI HEURISTIC SEARCH CHESS DEMO")
+    print("=" * 65)
+    print(f"Position FEN: {args.fen}")
+    print(f"Side to move: {'White' if demo_board.turn == chess.WHITE else 'Black'}")
+
+    if args.experiment:
+        print("\nRunning multi-depth experiment across depths [1, 2, 3]...")
+        exp_results = run_experiment(demo_board, depths=[1, 2, 3], algorithm=args.alg, heuristic_mode=args.heuristic)
+        print("\nDepth | Best Move | Minimax Score | Nodes Visited | Leaves | Elapsed (ms)")
+        print("-" * 65)
+        for r in exp_results:
+            move_str = r.best_move.uci() if r.best_move else "None"
+            print(f"  {r.depth}   |   {move_str:7} |    {r.best_score:+7d}    |     {r.nodes_visited:7d}   |  {r.leaves_evaluated:5d} | {r.elapsed_ms:8.2f} ms")
+    else:
+        print(f"\nSearching to depth {args.depth} using {args.alg.upper()} ({args.heuristic} heuristic)...")
+        stats = find_best_move(demo_board, depth=args.depth, algorithm=args.alg, heuristic_mode=args.heuristic)
+        print(f"Chosen move: {stats.best_move}")
+        print(f"Minimax score: {stats.best_score:+d} cp")
+        print(f"Nodes visited: {stats.nodes_visited}")
+        print(f"Leaves evaluated: {stats.leaves_evaluated}")
+        if args.alg == "alphabeta":
+            print(f"Alpha-Beta cuts: {stats.alpha_beta_cuts}")
+        print(f"Elapsed time: {stats.elapsed_ms:.2f} ms")
+        print(f"\nExplanation:\n{stats.explanation}")
+        print("\nTop Candidate Moves:")
+        for cand in stats.top_moves:
+            print(f"  Move {cand['san']} ({cand['uci']}): Minimax Score = {cand['minimax_score']:+d} cp | Static Leaf Score = {cand['static_score']:+d} cp")
