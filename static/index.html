@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artificial Intelligence Chess | Heuristic Search & Minimax Project</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #334155;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --accent-gold: #fbbf24;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #475569;
+      --board-light: #f0d9b5;
+      --board-dark: #b58863;
+      --highlight-select: rgba(56, 189, 248, 0.5);
+      --highlight-move: rgba(34, 197, 94, 0.4);
+      --highlight-check: rgba(239, 68, 68, 0.7);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-title h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .header-title .badge {
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--accent);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+
+    main {
+      flex: 1;
+      padding: 18px 24px;
+      max-width: 1550px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Layout for Game View */
+    .game-grid {
+      display: grid;
+      grid-template-columns: auto 340px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .game-grid {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+    }
+
+    /* Chessboard Container */
+    .board-wrapper {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-banner {
+      width: 100%;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+    .status-banner.check {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+    .status-banner.checkmate {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: var(--accent-gold);
+      color: #fde68a;
+    }
+
+    .board-frame {
+      display: grid;
+      grid-template-columns: 24px 480px 24px;
+      grid-template-rows: 24px 480px 24px;
+      background: #2b1b0d;
+      border-radius: 6px;
+      padding: 4px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .coord-col, .coord-row {
+      display: flex;
+      color: #d1b89d;
+      font-size: 0.75rem;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+    }
+    .coord-col { justify-content: space-around; width: 480px; }
+    .coord-row { flex-direction: column; justify-content: space-around; height: 480px; }
+
+    .board {
+      width: 480px;
+      height: 480px;
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      user-select: none;
+    }
+
+    .square {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+    }
+    .square.light { background-color: var(--board-light); }
+    .square.dark  { background-color: var(--board-dark); }
+
+    .square.selected {
+      background-color: var(--highlight-select) !important;
+    }
+    .square.last-move {
+      background-color: rgba(251, 191, 36, 0.4) !important;
+    }
+    .square.in-check {
+      background-color: var(--highlight-check) !important;
+    }
+
+    .square .legal-dot {
+      width: 18px;
+      height: 18px;
+      background: var(--highlight-move);
+      border-radius: 50%;
+      pointer-events: none;
+      position: absolute;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+    .square .legal-capture-ring {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 4px solid var(--accent-red);
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .piece {
+      width: 48px;
+      height: 48px;
+      z-index: 2;
+      transition: transform 0.1s ease;
+      cursor: grab;
+    }
+    .piece:active { cursor: grabbing; transform: scale(1.08); }
+
+    .board-controls {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .btn {
+      flex: 1;
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+    .btn-danger:hover {
+      background: var(--accent-red);
+      color: #fff;
+    }
+
+    /* Configuration Panel */
+    .config-panel, .analysis-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .control-group select, .control-group input {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .control-group select:focus, .control-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .depth-slider-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .depth-slider-box input[type="range"] {
+      flex: 1;
+    }
+    .depth-badge {
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .history-list {
+      max-height: 180px;
+      overflow-y: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      display: grid;
+      grid-template-columns: 36px 1fr 1fr;
+      gap: 4px 8px;
+    }
+    .history-num { color: var(--text-muted); }
+
+    /* Analysis Panel */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .metric-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .metric-val {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .metric-val.score-pos { color: var(--accent-green); }
+    .metric-val.score-neg { color: var(--accent-red); }
+
+    .breakdown-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+    .breakdown-row strong { color: var(--text-main); }
+
+    .top-candidates-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      background: var(--bg-card);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .top-candidates-table th, .top-candidates-table td {
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .top-candidates-table th {
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .top-candidates-table tr:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .explanation-box {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #e2e8f0;
+    }
+
+    /* Teaching & Demonstration View */
+    .teaching-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .teaching-grid { grid-template-columns: 1fr; }
+    }
+
+    .concept-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .concept-card h3 {
+      font-size: 1.05rem;
+      color: var(--accent-gold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .concept-card p {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    .concept-card ul {
+      padding-left: 20px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Interactive Tree Visualizer */
+    .tree-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .tree-svg-wrapper {
+      width: 100%;
+      height: 480px;
+      background: #090d16;
+      border-radius: 6px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    svg.game-tree {
+      width: 100%;
+      min-width: 800px;
+      height: 100%;
+    }
+
+    /* Experiment View */
+    .experiment-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .exp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .exp-table th, .exp-table td {
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .exp-table th {
+      background: var(--bg-card);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .exp-table tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+    .exp-table tr:not(:last-child) { border-bottom: 1px solid var(--border); }
+
+    /* Promotion Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 20px;
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    .promo-pieces {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .promo-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .promo-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .promo-btn img { width: 44px; height: 44px; }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-title">
+      <h1>Chess AI Heuristic Search Project</h1>
+      <span class="badge">DFS &bull; Minimax &bull; Alpha-Beta &bull; Custom Heuristic</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-game">🎮 Live Game</button>
+      <button class="tab-btn" data-tab="tab-teaching">📚 Theory &amp; Viva Defense</button>
+      <button class="tab-btn" data-tab="tab-tree">🌳 Game Tree Visualizer</button>
+      <button class="tab-btn" data-tab="tab-experiment">🔬 Depth Experiment Mode</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: LIVE GAME -->
+    <div id="tab-game" class="tab-content active">
+      <div class="game-grid">
+
+        <!-- Column 1: Board -->
+        <div class="board-wrapper">
+          <div id="statusBanner" class="status-banner">Loading board state...</div>
+
+          <div class="board-frame">
+            <div></div>
+            <div id="topCoords" class="coord-col"></div>
+            <div></div>
+
+            <div id="leftCoords" class="coord-row"></div>
+            <div id="chessBoard" class="board"></div>
+            <div id="rightCoords" class="coord-row"></div>
+
+            <div></div>
+            <div id="bottomCoords" class="coord-col"></div>
+            <div></div>
+          </div>
+
+          <div class="board-controls">
+            <button id="btnAiMove" class="btn btn-primary">🤖 Trigger AI Move</button>
+            <button id="btnUndo" class="btn">↩ Undo</button>
+            <button id="btnFlip" class="btn">🔄 Flip Board</button>
+            <button id="btnReset" class="btn btn-danger">⚡ Reset</button>
+          </div>
+        </div>
+
+        <!-- Column 2: Controls & Config -->
+        <div class="config-panel">
+          <div class="card-title">⚙️ Game Configuration</div>
+
+          <div class="control-group">
+            <label>Play Mode</label>
+            <select id="selPlayMode">
+              <option value="human_white">You (White) vs AI (Black)</option>
+              <option value="human_black">You (Black) vs AI (White)</option>
+              <option value="human_human">Human vs Human</option>
+              <option value="ai_ai">AI vs AI (Self-Play Demo)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>AI Difficulty (Search Depth)</label>
+            <div class="depth-slider-box">
+              <input type="range" id="rngDepth" min="1" max="4" value="3" step="1">
+              <span id="depthValBadge" class="depth-badge">3</span>
+            </div>
+            <span id="depthLabel" style="font-size: 0.75rem; color: var(--text-muted);">Medium (Depth 3 plies: tactically sound)</span>
+          </div>
+
+          <div class="control-group">
+            <label>Search Algorithm</label>
+            <select id="selAlgorithm">
+              <option value="alphabeta">Minimax with Alpha-Beta Pruning (Optimal)</option>
+              <option value="minimax">Pure Depth-First Minimax (Unpruned)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>Heuristic Evaluation Mode</label>
+            <select id="selHeuristic">
+              <option value="full">Enhanced (Material + PST + Center + Mobility + Safety)</option>
+              <option value="material">Baseline (Pure Material Balance Only)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>Academic Preset Positions</label>
+            <select id="selPreset">
+              <option value="">Select a scenario...</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>Move History</label>
+            <div id="moveHistory" class="history-list">
+              <span class="history-num">-</span><span>White</span><span>Black</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 3: AI Observable Analysis Panel -->
+        <div class="analysis-panel">
+          <div class="card-title">🔍 AI Search Observability Panel</div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">Selected Move</span>
+              <span id="metricBestMove" class="metric-val">-</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Minimax Value</span>
+              <span id="metricBestScore" class="metric-val">-</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Nodes Visited</span>
+              <span id="metricNodes" class="metric-val">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Leaf Evaluations</span>
+              <span id="metricLeaves" class="metric-val">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Alpha-Beta Cutoffs</span>
+              <span id="metricCuts" class="metric-val">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Search Time</span>
+              <span id="metricTime" class="metric-val">0.0 ms</span>
+            </div>
+          </div>
+
+          <div class="breakdown-box">
+            <span style="font-weight: 700; color: var(--accent);">Heuristic Score Breakdown (Resulting Position)</span>
+            <div class="breakdown-row"><span>Material balance:</span><strong id="bdMaterial">-</strong></div>
+            <div class="breakdown-row"><span>Piece placement (PST):</span><strong id="bdPST">-</strong></div>
+            <div class="breakdown-row"><span>Center pressure:</span><strong id="bdCenter">-</strong></div>
+            <div class="breakdown-row"><span>Mobility difference:</span><strong id="bdMobility">-</strong></div>
+            <div class="breakdown-row"><span>King safety &amp; shelter:</span><strong id="bdKingSafety">-</strong></div>
+          </div>
+
+          <div class="control-group">
+            <label>Top Candidate Moves &amp; Minimax vs Static Score</label>
+            <table class="top-candidates-table">
+              <thead>
+                <tr>
+                  <th>Move</th>
+                  <th>Minimax Score</th>
+                  <th>Static Leaf Score</th>
+                </tr>
+              </thead>
+              <tbody id="topMovesBody">
+                <tr><td colspan="3" style="text-align:center; color:var(--text-muted);">Search not yet run</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="explanationText" class="explanation-box">
+            Awaiting AI search. Trigger an AI move or make a move to observe DFS Minimax calculations.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: TEACHING & VIVA DEFENSE -->
+    <div id="tab-teaching" class="tab-content">
+      <div class="teaching-grid">
+
+        <div class="concept-card">
+          <h3>🌲 1. Depth-First Search (DFS) &amp; Game Trees</h3>
+          <p>
+            A two-player adversarial chess game can be modeled as a directed game tree where the current board is the root,
+            directed edges represent legal chess moves, and child nodes represent resulting game states.
+          </p>
+          <p>
+            <strong>Why DFS?</strong> Chess has an average branching factor of $b \approx 35$. Breadth-First Search (BFS)
+            requires storing an entire depth level in memory ($O(b^d)$ space), exhausting RAM almost instantly. DFS requires
+            only $O(b \times d)$ space, storing only the active path from root to leaf along with unexplored siblings on the recursion stack.
+          </p>
+        </div>
+
+        <div class="concept-card">
+          <h3>⏱️ 2. The Combinatorial Horizon &amp; Depth Limits</h3>
+          <p>
+            Shannon calculated that a full game of chess contains roughly $10^{120}$ possible positions (Shannon's Number).
+            Even exploring 5 full plies requires evaluating over $52 \text{ million}$ hypothetical states.
+          </p>
+          <p>
+            <strong>The Depth Limit:</strong> Because the tree cannot be searched to terminal checkmate within practical time,
+            we enforce a depth limit ($d$). When $d = 0$, recursion terminates, and we invoke a static heuristic evaluation function
+            to estimate the relative positional strength.
+          </p>
+        </div>
+
+        <div class="concept-card">
+          <h3>⚖️ 3. Minimax Decision Rule</h3>
+          <p>
+            Minimax assumes zero-sum play under perfect adversarial rationality:
+          </p>
+          <ul>
+            <li><strong>Maximizing Player (White):</strong> Chooses the candidate move yielding the highest evaluation score ($\max$).</li>
+            <li><strong>Minimizing Player (Black):</strong> Predicted to choose the countermove yielding the lowest evaluation score ($\min$).</li>
+          </ul>
+          <p>
+            Scores are backed up recursively from leaf evaluation nodes back to the root, guaranteeing the AI selects the move
+            that maximizes its guaranteed outcome regardless of the opponent's best reply.
+          </p>
+        </div>
+
+        <div class="concept-card">
+          <h3>✂️ 4. Alpha-Beta Pruning Optimization</h3>
+          <p>
+            Alpha-Beta pruning preserves the exact same minimax decision while eliminating branches that cannot possibly affect the root choice:
+          </p>
+          <ul>
+            <li>$\alpha$: The minimum score White is already guaranteed to achieve.</li>
+            <li>$\beta$: The maximum score Black is already guaranteed to achieve.</li>
+          </ul>
+          <p>
+            Whenever $\beta \le \alpha$, a cutoff occurs: the current branch is abandoned because the opponent already has a better
+            alternative elsewhere. In optimal move ordering, Alpha-Beta cuts the effective branching factor from $b$ down to $\sqrt{b}$,
+            effectively doubling the searchable depth in the same runtime.
+          </p>
+        </div>
+
+        <div class="concept-card">
+          <h3>🧮 5. Heuristic Evaluation Components</h3>
+          <p>
+            Our project implements an explainable, multi-factor additive evaluation function:
+          </p>
+          <ul>
+            <li><strong>Material:</strong> Pawn = 100, Knight = 320, Bishop = 330, Rook = 500, Queen = 900.</li>
+            <li><strong>Piece-Square Tables (PST):</strong> Encourages piece development, centralization of knights, and castling safety.</li>
+            <li><strong>Center Control:</strong> Rewards control of $\{d4, e4, d5, e5\}$ and outer boundary squares.</li>
+            <li><strong>Piece Mobility:</strong> Incentivizes open diagonals and active files.</li>
+            <li><strong>King Safety:</strong> Penalizes open king files and missing shield pawns in castled structures.</li>
+            <li><strong>Checkmate:</strong> Large special constant ($100,000 \pm d$) ensuring checkmate overrides all material calculations.</li>
+          </ul>
+        </div>
+
+        <div class="concept-card">
+          <h3>🎯 6. Why Non-Material Winning Moves are Chosen</h3>
+          <p>
+            Undergraduate examiners often ask: <em>"Why did the AI choose a quiet move instead of capturing a free pawn?"</em>
+          </p>
+          <p>
+            Minimax looks ahead $d$ plies. If capturing a pawn falls into an opponent tactical trap (e.g., pinning the queen or allowing
+            a checkmate net 2 plies later), the backed-up minimax score for the capture will be severely negative. The AI will correctly
+            decline immediate material gain to defend or achieve a superior strategic advantage.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 3: GAME TREE VISUALIZER -->
+    <div id="tab-tree" class="tab-content">
+      <div class="tree-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h2 style="font-size:1.15rem; color:var(--accent);">Interactive Minimax Game Tree Visualizer</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted);">
+              Generates a real-time game tree snapshot from the current position. Observe the distinction between
+              static leaf evaluations and backed-up Minimax propagated values.
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <label style="font-size:0.85rem; color:var(--text-muted);">Visual Depth:</label>
+            <select id="selTreeDepth" style="background:var(--bg-card); color:var(--text-main); border:1px solid var(--border); padding:6px; border-radius:4px;">
+              <option value="1">Depth 1 (Root &rarr; Candidate Moves)</option>
+              <option value="2" selected>Depth 2 (Root &rarr; Moves &rarr; Countermoves)</option>
+            </select>
+            <button id="btnRefreshTree" class="btn btn-primary" style="padding:6px 14px;">🔄 Generate Tree</button>
+          </div>
+        </div>
+
+        <div class="tree-svg-wrapper">
+          <svg id="svgGameTree" class="game-tree"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: EXPERIMENT MODE -->
+    <div id="tab-experiment" class="tab-content">
+      <div class="experiment-container">
+        <div>
+          <h2 style="font-size:1.2rem; color:var(--accent);">Empirical Performance &amp; Search Depth Experiment</h2>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-top:4px;">
+            Evaluate the current board position across sequential search depths ($d = 1, 2, 3, 4$) to observe exponential
+            node growth, time complexity, and decision stability.
+          </p>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <button id="btnRunExperiment" class="btn btn-primary">🚀 Run Multi-Depth Benchmark</button>
+          <button id="btnCompareHeuristics" class="btn">⚖️ Compare Baseline vs Enhanced Heuristic</button>
+          <span id="expSpinner" style="display:none;"><span class="spinner"></span> Running search...</span>
+        </div>
+
+        <table class="exp-table">
+          <thead>
+            <tr>
+              <th>Search Depth ($d$)</th>
+              <th>Algorithm</th>
+              <th>Chosen Move</th>
+              <th>Minimax Score</th>
+              <th>Nodes Visited</th>
+              <th>Leaf Evaluations</th>
+              <th>Pruning Cutoffs</th>
+              <th>Execution Time</th>
+              <th>Effective Branching Factor</th>
+            </tr>
+          </thead>
+          <tbody id="expResultsBody">
+            <tr>
+              <td colspan="9" style="text-align:center; color:var(--text-muted); padding:20px;">
+                Click "Run Multi-Depth Benchmark" to evaluate the current board position.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="explanation-box" style="margin-top:10px;">
+          <strong>Academic Note for Viva Examination:</strong><br>
+          Notice how the number of visited nodes scales approximately as $O(b^d)$ for pure Minimax, while Alpha-Beta pruning
+          significantly flattens this curve to $O(b^{d/2})$ under effective move ordering. Higher depth can uncover deeper tactical threats,
+          demonstrating why depth is the primary parameter controlling chess AI playing strength.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Promotion Modal -->
+  <div id="promoModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="color:var(--accent-gold);">Pawn Promotion</h3>
+      <p style="font-size:0.85rem; color:var(--text-muted);">Choose a piece to promote your pawn:</p>
+      <div class="promo-pieces">
+        <button class="promo-btn" data-promo="q"><img id="promoImgQ" src="" alt="Queen"></button>
+        <button class="promo-btn" data-promo="r"><img id="promoImgR" src="" alt="Rook"></button>
+        <button class="promo-btn" data-promo="b"><img id="promoImgB" src="" alt="Bishop"></button>
+        <button class="promo-btn" data-promo="n"><img id="promoImgN" src="" alt="Knight"></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       Chess AI Client-Side Application
+       ========================================================================== */
+
+    const state = {
+      board: null,
+      lastStats: null,
+      selectedSquare: null,
+      legalMovesForSelected: [],
+      flipped: false,
+      isAiSearching: false,
+      pendingPromotionMove: null,
+      playMode: 'human_white',
+    };
+
+    // DOM Elements
+    const chessBoard = document.getElementById('chessBoard');
+    const statusBanner = document.getElementById('statusBanner');
+    const topCoords = document.getElementById('topCoords');
+    const bottomCoords = document.getElementById('bottomCoords');
+    const leftCoords = document.getElementById('leftCoords');
+    const rightCoords = document.getElementById('rightCoords');
+    const btnAiMove = document.getElementById('btnAiMove');
+    const btnUndo = document.getElementById('btnUndo');
+    const btnFlip = document.getElementById('btnFlip');
+    const btnReset = document.getElementById('btnReset');
+    const selPlayMode = document.getElementById('selPlayMode');
+    const rngDepth = document.getElementById('rngDepth');
+    const depthValBadge = document.getElementById('depthValBadge');
+    const depthLabel = document.getElementById('depthLabel');
+    const selAlgorithm = document.getElementById('selAlgorithm');
+    const selHeuristic = document.getElementById('selHeuristic');
+    const selPreset = document.getElementById('selPreset');
+    const moveHistory = document.getElementById('moveHistory');
+
+    // Metrics Elements
+    const metricBestMove = document.getElementById('metricBestMove');
+    const metricBestScore = document.getElementById('metricBestScore');
+    const metricNodes = document.getElementById('metricNodes');
+    const metricLeaves = document.getElementById('metricLeaves');
+    const metricCuts = document.getElementById('metricCuts');
+    const metricTime = document.getElementById('metricTime');
+    const bdMaterial = document.getElementById('bdMaterial');
+    const bdPST = document.getElementById('bdPST');
+    const bdCenter = document.getElementById('bdCenter');
+    const bdMobility = document.getElementById('bdMobility');
+    const bdKingSafety = document.getElementById('bdKingSafety');
+    const topMovesBody = document.getElementById('topMovesBody');
+    const explanationText = document.getElementById('explanationText');
+
+    // Tab Navigation
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+
+        if (tabId === 'tab-tree') {
+          renderGameTree();
+        }
+      });
+    });
+
+    // Difficulty slider handling
+    const depthDescriptions = {
+      '1': 'Easy (Depth 1: immediate captures only)',
+      '2': 'Easy-Medium (Depth 2: 1 move lookahead for each side)',
+      '3': 'Medium (Depth 3: tactically sound, balanced depth)',
+      '4': 'Hard (Depth 4: deep tactical vision, evaluates ~10,000+ positions)'
+    };
+    rngDepth.addEventListener('input', (e) => {
+      depthValBadge.textContent = e.target.value;
+      depthLabel.textContent = depthDescriptions[e.target.value] || `Depth ${e.target.value}`;
+    });
+
+    // Preset positions loader
+    async function loadPresets() {
+      try {
+        const res = await fetch('/api/presets');
+        const presets = await res.json();
+        presets.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.fen;
+          opt.textContent = `${p.name}`;
+          selPreset.appendChild(opt);
+        });
+      } catch (err) {
+        console.error('Failed to load presets:', err);
+      }
+    }
+
+    selPreset.addEventListener('change', async (e) => {
+      if (!e.target.value) return;
+      await apiNewGame(e.target.value);
+    });
+
+    // ── API Helpers ─────────────────────────────────────────────────────────
+
+    async function apiFetchState() {
+      const res = await fetch('/api/state');
+      const data = await res.json();
+      state.board = data.board;
+      state.lastStats = data.last_stats;
+      updateUI();
+      checkAutoAiTurn();
+    }
+
+    async function apiMakeMove(uci) {
+      const res = await fetch('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uci }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Invalid move');
+        return;
+      }
+      const data = await res.json();
+      state.board = data.board;
+      state.lastStats = null;
+      state.selectedSquare = null;
+      state.legalMovesForSelected = [];
+      updateUI();
+      checkAutoAiTurn();
+    }
+
+    async function apiTriggerAiMove() {
+      if (state.isAiSearching || (state.board && state.board.is_game_over)) return;
+      state.isAiSearching = true;
+      btnAiMove.disabled = true;
+      btnAiMove.innerHTML = '<span class="spinner"></span> AI Thinking...';
+
+      const depth = parseInt(rngDepth.value, 10);
+      const algorithm = selAlgorithm.value;
+      const heuristic_mode = selHeuristic.value;
+
+      try {
+        const res = await fetch('/api/ai_move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ depth, algorithm, heuristic_mode }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert(data.error);
+        } else {
+          state.board = data.board;
+          state.lastStats = data.last_stats;
+        }
+      } catch (err) {
+        console.error('AI move failed:', err);
+      } finally {
+        state.isAiSearching = false;
+        btnAiMove.disabled = false;
+        btnAiMove.textContent = '🤖 Trigger AI Move';
+        state.selectedSquare = null;
+        state.legalMovesForSelected = [];
+        updateUI();
+        checkAutoAiTurn();
+      }
+    }
+
+    async function apiUndo() {
+      const res = await fetch('/api/undo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: (state.playMode.startsWith('human_') ? 2 : 1) }),
+      });
+      const data = await res.json();
+      state.board = data.board;
+      state.lastStats = null;
+      state.selectedSquare = null;
+      state.legalMovesForSelected = [];
+      updateUI();
+    }
+
+    async function apiNewGame(fen = null) {
+      const payload = fen ? { fen } : {};
+      const res = await fetch('/api/new_game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      state.board = data.board;
+      state.lastStats = null;
+      state.selectedSquare = null;
+      state.legalMovesForSelected = [];
+      updateUI();
+      checkAutoAiTurn();
+    }
+
+    // Auto-play AI turns if current turn belongs to the computer
+    function checkAutoAiTurn() {
+      if (!state.board || state.board.is_game_over || state.isAiSearching) return;
+      const turn = state.board.turn;
+      const mode = selPlayMode.value;
+
+      let isAiTurn = false;
+      if (mode === 'human_white' && turn === 'black') isAiTurn = true;
+      if (mode === 'human_black' && turn === 'white') isAiTurn = true;
+      if (mode === 'ai_ai') isAiTurn = true;
+
+      if (isAiTurn) {
+        setTimeout(() => {
+          apiTriggerAiMove();
+        }, 300);
+      }
+    }
+
+    // ── Board UI Rendering ──────────────────────────────────────────────────
+
+    function renderCoordinates() {
+      const files = state.flipped ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+      const ranks = state.flipped ? ['1','2','3','4','5','6','7','8'] : ['8','7','6','5','4','3','2','1'];
+
+      topCoords.innerHTML = files.map(f => `<span>${f.toUpperCase()}</span>`).join('');
+      bottomCoords.innerHTML = files.map(f => `<span>${f.toUpperCase()}</span>`).join('');
+      leftCoords.innerHTML = ranks.map(r => `<span>${r}</span>`).join('');
+      rightCoords.innerHTML = ranks.map(r => `<span>${r}</span>`).join('');
+    }
+
+    function renderBoard() {
+      if (!state.board) return;
+      chessBoard.innerHTML = '';
+
+      const ranks = state.flipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+      const files = state.flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+
+      // Identify last move squares
+      let lastMoveFrom = null;
+      let lastMoveTo = null;
+      if (state.board.move_history && state.board.move_history.length > 0) {
+        const last = state.board.move_history[state.board.move_history.length - 1];
+        lastMoveFrom = last.uci.substring(0, 2);
+        lastMoveTo = last.uci.substring(2, 4);
+      }
+
+      for (let r of ranks) {
+        for (let f of files) {
+          const sqName = String.fromCharCode(97 + f) + (r + 1);
+          const isLight = (r + f) % 2 !== 0;
+
+          const sqDiv = document.createElement('div');
+          sqDiv.className = `square ${isLight ? 'light' : 'dark'}`;
+          sqDiv.dataset.square = sqName;
+
+          if (sqName === state.selectedSquare) {
+            sqDiv.classList.add('selected');
+          }
+          if (sqName === lastMoveFrom || sqName === lastMoveTo) {
+            sqDiv.classList.add('last-move');
+          }
+
+          const pieceInfo = state.board.squares[sqName];
+          if (pieceInfo) {
+            // Check highlight on King if in check
+            if (pieceInfo.type === 6 && pieceInfo.color === state.board.turn && state.board.is_check) {
+              sqDiv.classList.add('in-check');
+            }
+
+            const img = document.createElement('img');
+            img.className = 'piece';
+            img.src = `/img/${pieceInfo.color}/${getPieceFilename(pieceInfo.type)}`;
+            img.alt = pieceInfo.symbol;
+            sqDiv.appendChild(img);
+          }
+
+          // Render legal move indicator if square is selected
+          const moveMatch = state.legalMovesForSelected.find(m => m.to === sqName);
+          if (moveMatch) {
+            if (pieceInfo) {
+              const ring = document.createElement('div');
+              ring.className = 'legal-capture-ring';
+              sqDiv.appendChild(ring);
+            } else {
+              const dot = document.createElement('div');
+              dot.className = 'legal-dot';
+              sqDiv.appendChild(dot);
+            }
+          }
+
+          sqDiv.addEventListener('click', () => onSquareClick(sqName));
+          chessBoard.appendChild(sqDiv);
+        }
+      }
+    }
+
+    function getPieceFilename(type) {
+      switch (type) {
+        case 1: return 'pawn.svg';
+        case 2: return 'knight.svg';
+        case 3: return 'bishop.svg';
+        case 4: return 'rook.svg';
+        case 5: return 'queen.svg';
+        case 6: return 'king.svg';
+        default: return 'pawn.svg';
+      }
+    }
+
+    function onSquareClick(sq) {
+      if (!state.board || state.board.is_game_over || state.isAiSearching) return;
+
+      // If a square is already selected and we click a legal target square
+      if (state.selectedSquare) {
+        const move = state.legalMovesForSelected.find(m => m.to === sq);
+        if (move) {
+          // Check for promotion
+          if (move.promotion) {
+            openPromotionModal(move);
+            return;
+          }
+          apiMakeMove(move.uci);
+          return;
+        }
+      }
+
+      // Select new square
+      const piece = state.board.squares[sq];
+      if (piece && piece.color === state.board.turn) {
+        state.selectedSquare = sq;
+        state.legalMovesForSelected = state.board.legal_moves.filter(m => m.from === sq);
+      } else {
+        state.selectedSquare = null;
+        state.legalMovesForSelected = [];
+      }
+      renderBoard();
+    }
+
+    function openPromotionModal(move) {
+      state.pendingPromotionMove = move;
+      const turnColor = state.board.turn;
+      document.getElementById('promoImgQ').src = `/img/${turnColor}/queen.svg`;
+      document.getElementById('promoImgR').src = `/img/${turnColor}/rook.svg`;
+      document.getElementById('promoImgB').src = `/img/${turnColor}/bishop.svg`;
+      document.getElementById('promoImgN').src = `/img/${turnColor}/knight.svg`;
+      document.getElementById('promoModal').classList.add('active');
+    }
+
+    document.querySelectorAll('.promo-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const promoPiece = btn.dataset.promo;
+        document.getElementById('promoModal').classList.remove('active');
+        if (state.pendingPromotionMove) {
+          const uciBase = state.pendingPromotionMove.from + state.pendingPromotionMove.to;
+          apiMakeMove(uciBase + promoPiece);
+          state.pendingPromotionMove = null;
+        }
+      });
+    });
+
+    // ── Status & Analysis Updates ───────────────────────────────────────────
+
+    function updateUI() {
+      renderCoordinates();
+      renderBoard();
+      updateStatusBanner();
+      updateMoveHistory();
+      updateAnalysisPanel();
+    }
+
+    function updateStatusBanner() {
+      if (!state.board) return;
+      statusBanner.className = 'status-banner';
+
+      if (state.board.is_checkmate) {
+        const winner = state.board.turn === 'white' ? 'Black' : 'White';
+        statusBanner.textContent = `🏆 Checkmate! ${winner} wins the game!`;
+        statusBanner.classList.add('checkmate');
+      } else if (state.board.is_stalemate) {
+        statusBanner.textContent = '🤝 Game drawn by stalemate (no legal moves).';
+      } else if (state.board.is_insufficient) {
+        statusBanner.textContent = '🤝 Game drawn by insufficient material.';
+      } else if (state.board.is_check) {
+        const activeSide = state.board.turn.toUpperCase();
+        statusBanner.textContent = `⚠️ Check! ${activeSide} king is under direct attack.`;
+        statusBanner.classList.add('check');
+      } else {
+        const side = state.board.turn === 'white' ? "White's Turn" : "Black's Turn";
+        statusBanner.textContent = `Turn: ${side} (Move ${state.board.fullmove})`;
+      }
+    }
+
+    function updateMoveHistory() {
+      if (!state.board) return;
+      const hist = state.board.move_history || [];
+      let html = '<span class="history-num">-</span><span>White</span><span>Black</span>';
+
+      for (let i = 0; i < hist.length; i += 2) {
+        const moveNum = Math.floor(i / 2) + 1;
+        const wMove = hist[i] ? hist[i].san : '';
+        const bMove = hist[i + 1] ? hist[i + 1].san : '';
+        html += `<span class="history-num">${moveNum}.</span><span>${wMove}</span><span>${bMove}</span>`;
+      }
+      moveHistory.innerHTML = html;
+      moveHistory.scrollTop = moveHistory.scrollHeight;
+    }
+
+    function updateAnalysisPanel() {
+      const stats = state.lastStats;
+      if (!stats) return;
+
+      metricBestMove.textContent = stats.best_san || stats.best_move || '-';
+
+      const score = stats.best_score;
+      const pawnVal = (score / 100.0).toFixed(2);
+      const sign = score > 0 ? '+' : '';
+      metricBestScore.textContent = `${sign}${score} cp (${sign}${pawnVal})`;
+      metricBestScore.className = 'metric-val ' + (score > 30 ? 'score-pos' : score < -30 ? 'score-neg' : '');
+
+      metricNodes.textContent = stats.nodes_visited.toLocaleString();
+      metricLeaves.textContent = stats.leaves_evaluated.toLocaleString();
+      metricCuts.textContent = stats.alpha_beta_cuts.toLocaleString();
+      metricTime.textContent = `${stats.elapsed_ms} ms`;
+
+      if (stats.breakdown) {
+        const bd = stats.breakdown;
+        bdMaterial.textContent = `${bd.material >= 0 ? '+' : ''}${bd.material} cp`;
+        bdPST.textContent = `${bd.pst >= 0 ? '+' : ''}${bd.pst} cp`;
+        bdCenter.textContent = `${bd.center >= 0 ? '+' : ''}${bd.center} cp`;
+        bdMobility.textContent = `${bd.mobility >= 0 ? '+' : ''}${bd.mobility} cp`;
+        bdKingSafety.textContent = `${bd.king_safety >= 0 ? '+' : ''}${bd.king_safety} cp`;
+      }
+
+      if (stats.top_moves && stats.top_moves.length > 0) {
+        let rows = '';
+        stats.top_moves.forEach(cand => {
+          const mSign = cand.minimax_score >= 0 ? '+' : '';
+          const sSign = cand.static_score >= 0 ? '+' : '';
+          rows += `<tr>
+            <td><strong>${cand.san || cand.uci}</strong></td>
+            <td>${mSign}${cand.minimax_score} cp</td>
+            <td style="color:var(--text-muted);">${sSign}${cand.static_score} cp</td>
+          </tr>`;
+        });
+        topMovesBody.innerHTML = rows;
+      }
+
+      if (stats.explanation) {
+        explanationText.textContent = stats.explanation;
+      }
+    }
+
+    // ── Controls Listeners ──────────────────────────────────────────────────
+
+    btnAiMove.addEventListener('click', apiTriggerAiMove);
+    btnUndo.addEventListener('click', apiUndo);
+    btnReset.addEventListener('click', () => {
+      if (confirm('Start a new standard game?')) {
+        selPreset.value = '';
+        apiNewGame();
+      }
+    });
+    btnFlip.addEventListener('click', () => {
+      state.flipped = !state.flipped;
+      renderCoordinates();
+      renderBoard();
+    });
+
+    selPlayMode.addEventListener('change', () => {
+      if (selPlayMode.value === 'human_black') {
+        state.flipped = true;
+      } else if (selPlayMode.value === 'human_white') {
+        state.flipped = false;
+      }
+      renderCoordinates();
+      renderBoard();
+      checkAutoAiTurn();
+    });
+
+    // ── Game Tree Visualizer Rendering ──────────────────────────────────────
+
+    document.getElementById('btnRefreshTree').addEventListener('click', renderGameTree);
+
+    async function renderGameTree() {
+      const depth = document.getElementById('selTreeDepth').value;
+      const heuristic = selHeuristic.value;
+      const svg = document.getElementById('svgGameTree');
+      svg.innerHTML = '<text x="50" y="50" fill="#94a3b8">Constructing tree search snapshot...</text>';
+
+      try {
+        const res = await fetch(`/api/tree?depth=${depth}&heuristic=${heuristic}`);
+        const root = await res.json();
+        drawTreeSVG(root, svg);
+      } catch (err) {
+        svg.innerHTML = `<text x="50" y="50" fill="#ef4444">Failed to load tree: ${err}</text>`;
+      }
+    }
+
+    function drawTreeSVG(root, svg) {
+      svg.innerHTML = '';
+      const width = Math.max(900, window.innerWidth - 300);
+      const height = 450;
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+      // Compute node positions
+      const levels = [[root]];
+      if (root.children) {
+        levels.push(root.children);
+        let depth2Nodes = [];
+        root.children.forEach(c => {
+          if (c.children) depth2Nodes.push(...c.children);
+        });
+        if (depth2Nodes.length > 0) levels.push(depth2Nodes);
+      }
+
+      const ySpacing = height / (levels.length + 0.5);
+
+      // Assign coordinates
+      levels.forEach((lvl, lvlIdx) => {
+        const y = (lvlIdx + 0.7) * ySpacing;
+        const xSpacing = width / (lvl.length + 1);
+        lvl.forEach((node, nodeIdx) => {
+          node.x = (nodeIdx + 1) * xSpacing;
+          node.y = y;
+        });
+      });
+
+      // Draw edges
+      function drawEdges(node) {
+        if (!node.children) return;
+        node.children.forEach(ch => {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', node.x);
+          line.setAttribute('y1', node.y);
+          line.setAttribute('x2', ch.x);
+          line.setAttribute('y2', ch.y);
+          line.setAttribute('stroke', '#475569');
+          line.setAttribute('stroke-width', '2');
+          svg.appendChild(line);
+          drawEdges(ch);
+        });
+      }
+      drawEdges(root);
+
+      // Draw nodes
+      function drawNodes(node) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', node.x);
+        circle.setAttribute('cy', node.y);
+        circle.setAttribute('r', '22');
+        circle.setAttribute('fill', node.is_max ? '#1e3a8a' : '#831843');
+        circle.setAttribute('stroke', '#38bdf8');
+        circle.setAttribute('stroke-width', '2');
+
+        const textMove = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textMove.setAttribute('x', node.x);
+        textMove.setAttribute('y', node.y - 4);
+        textMove.setAttribute('text-anchor', 'middle');
+        textMove.setAttribute('fill', '#ffffff');
+        textMove.setAttribute('font-size', '11px');
+        textMove.setAttribute('font-weight', 'bold');
+        textMove.textContent = node.san || node.move || 'Root';
+
+        const textScore = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textScore.setAttribute('x', node.x);
+        textScore.setAttribute('y', node.y + 12);
+        textScore.setAttribute('text-anchor', 'middle');
+        textScore.setAttribute('fill', '#fbbf24');
+        textScore.setAttribute('font-size', '10px');
+        textScore.textContent = `${node.minimax_score >= 0 ? '+' : ''}${node.minimax_score}`;
+
+        g.appendChild(circle);
+        g.appendChild(textMove);
+        g.appendChild(textScore);
+        svg.appendChild(g);
+
+        if (node.children) {
+          node.children.forEach(drawNodes);
+        }
+      }
+      drawNodes(root);
+    }
+
+    // ── Experiment Mode Handlers ────────────────────────────────────────────
+
+    document.getElementById('btnRunExperiment').addEventListener('click', async () => {
+      const spinner = document.getElementById('expSpinner');
+      spinner.style.display = 'inline-block';
+      const algorithm = selAlgorithm.value;
+      const heuristic_mode = selHeuristic.value;
+
+      try {
+        const res = await fetch('/api/experiment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ depths: [1, 2, 3, 4], algorithm, heuristic_mode }),
+        });
+        const results = await res.json();
+        renderExperimentTable(results);
+      } catch (err) {
+        alert('Experiment benchmark failed: ' + err);
+      } finally {
+        spinner.style.display = 'none';
+      }
+    });
+
+    document.getElementById('btnCompareHeuristics').addEventListener('click', async () => {
+      const spinner = document.getElementById('expSpinner');
+      spinner.style.display = 'inline-block';
+      const depth = parseInt(rngDepth.value, 10);
+
+      try {
+        const res = await fetch('/api/compare_heuristics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ depth }),
+        });
+        const comp = await res.json();
+        renderHeuristicComparison(comp);
+      } catch (err) {
+        alert('Heuristic comparison failed: ' + err);
+      } finally {
+        spinner.style.display = 'none';
+      }
+    });
+
+    function renderExperimentTable(results) {
+      const tbody = document.getElementById('expResultsBody');
+      tbody.innerHTML = '';
+      let prevNodes = null;
+
+      results.forEach(r => {
+        let ebf = '-';
+        if (prevNodes !== null && prevNodes > 0) {
+          ebf = (r.nodes_visited / prevNodes).toFixed(2) + 'x';
+        }
+        prevNodes = r.nodes_visited;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>Depth ${r.depth}</strong></td>
+          <td>${r.algorithm === 'alphabeta' ? 'Minimax + Alpha-Beta' : 'Pure DFS Minimax'}</td>
+          <td><code>${r.best_san || r.best_move}</code></td>
+          <td style="color:${r.best_score >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight:700;">
+            ${r.best_score >= 0 ? '+' : ''}${r.best_score} cp
+          </td>
+          <td>${r.nodes_visited.toLocaleString()}</td>
+          <td>${r.leaves_evaluated.toLocaleString()}</td>
+          <td>${r.alpha_beta_cuts.toLocaleString()}</td>
+          <td>${r.elapsed_ms} ms</td>
+          <td><span class="badge" style="background:rgba(251,191,36,0.2); color:var(--accent-gold); border:1px solid rgba(251,191,36,0.4);">${ebf}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderHeuristicComparison(comp) {
+      const tbody = document.getElementById('expResultsBody');
+      tbody.innerHTML = '';
+
+      const items = [
+        { label: 'Baseline (Material Only)', data: comp.baseline },
+        { label: 'Enhanced (Material + PST + Center + Mobility + Safety)', data: comp.full }
+      ];
+
+      items.forEach(item => {
+        const r = item.data;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${item.label}</strong></td>
+          <td>Depth ${r.depth} (Alpha-Beta)</td>
+          <td><code>${r.best_san || r.best_move}</code></td>
+          <td style="color:${r.best_score >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight:700;">
+            ${r.best_score >= 0 ? '+' : ''}${r.best_score} cp
+          </td>
+          <td>${r.nodes_visited.toLocaleString()}</td>
+          <td>${r.leaves_evaluated.toLocaleString()}</td>
+          <td>${r.alpha_beta_cuts.toLocaleString()}</td>
+          <td>${r.elapsed_ms} ms</td>
+          <td>Baseline vs Enhanced</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      loadPresets();
+      apiFetchState();
+    });
+  </script>
+</body>
+</html>
