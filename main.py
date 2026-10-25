@@ -217,6 +217,54 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == '--self-test':
         selftest.run(main)
         sys.exit(0)
+    elif len(sys.argv) >= 2 and sys.argv[1] == '--server':
+        import chess_server
+        port = 8765
+        for i, a in enumerate(sys.argv):
+            if a == '--port' and i + 1 < len(sys.argv):
+                port = int(sys.argv[i + 1])
+        chess_server.run_server(port=port)
+        sys.exit(0)
+    elif len(sys.argv) >= 2 and sys.argv[1] == '--ai-move':
+        import chess_ai
+        depth = 3
+        for i, a in enumerate(sys.argv):
+            if a == '--depth' and i + 1 < len(sys.argv):
+                depth = int(sys.argv[i + 1])
+
+        if not os.path.exists('games/current.pgn'):
+            print("No current game in progress! Creating starting game...")
+            os.environ.setdefault('GITHUB_REPOSITORY', 'marcizhu/readme-chess')
+            main(mockGithub.Issue('Chess: Start new game'), '@player1', '@player1')
+
+        with open('games/current.pgn') as pgn_file:
+            game = chess.pgn.read_game(pgn_file)
+            gameboard = game.board()
+            for m in game.mainline_moves():
+                gameboard.push(m)
+
+        if gameboard.is_game_over():
+            print(f"Game is already over: {gameboard.result()}")
+            sys.exit(0)
+
+        print(f"AI computing move for {'White' if gameboard.turn == chess.WHITE else 'Black'} at depth {depth}...")
+        stats = chess_ai.find_best_move(gameboard, depth=depth)
+        if not stats.best_move:
+            print("AI found no legal move!")
+            sys.exit(1)
+
+        src_sq = chess.square_name(stats.best_move.from_square).upper()
+        dst_sq = chess.square_name(stats.best_move.to_square).upper()
+        issue_title = f"Chess: Move {src_sq} to {dst_sq}"
+        print(f"AI chose: {issue_title} (Minimax score: {stats.best_score:+d} cp, evaluated {stats.nodes_visited} nodes in {stats.elapsed_ms:.1f} ms)")
+
+        os.environ.setdefault('GITHUB_REPOSITORY', 'marcizhu/readme-chess')
+        ret, reason = main(mockGithub.Issue(issue_title), '@ChessAI', '@player1')
+        if not ret:
+            print(f"Failed to play move: {reason}")
+            sys.exit(1)
+        print("Move successfully applied to games/current.pgn and README.md.")
+        sys.exit(0)
     else:
         repo = Github(os.environ['GITHUB_TOKEN']).get_repo(os.environ['GITHUB_REPOSITORY'])
         issue = repo.get_issue(number=int(os.environ['ISSUE_NUMBER']))
