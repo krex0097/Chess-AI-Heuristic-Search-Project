@@ -1,6 +1,13 @@
 import os
+import sys
 import re
 import yaml
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 import src.mockGithub as mockGithub
 
