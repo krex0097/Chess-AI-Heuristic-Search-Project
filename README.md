@@ -1,26 +1,34 @@
 # Marc's Open Chess Tournament
 
-This is an open chess tournament where ANYONE can play. That's the fun part.  
-It's your turn to play! Move a <!-- BEGIN TURN -->black<!-- END TURN --> piece.
+An interactive chess game powered by GitHub Issues and GitHub Actions. Anyone can participate by selecting a legal move and submitting it through a GitHub Issue.
+
+## Current Game
+
+It's your turn to play! Move a **black** piece.
+
+<!-- BEGIN TURN -->black<!-- END TURN -->
 
 <!-- BEGIN CHESS BOARD -->
 |   | H | G | F | E | D | C | B | A |   |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| **1** | <img src="img/white/rook.svg" width=50px> | <img src="img/white/knight.svg" width=50px> | <img src="img/white/bishop.svg" width=50px> | <img src="img/white/king.svg" width=50px> | <img src="img/white/queen.svg" width=50px> | <img src="img/white/bishop.svg" width=50px> | <img src="img/white/knight.svg" width=50px> | <img src="img/white/rook.svg" width=50px> | **1** |
-| **2** | <img src="img/white/pawn.svg" width=50px> | <img src="img/white/pawn.svg" width=50px> | <img src="img/white/pawn.svg" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/white/pawn.svg" width=50px> | <img src="img/white/pawn.svg" width=50px> | <img src="img/white/pawn.svg" width=50px> | <img src="img/white/pawn.svg" width=50px> | **2** |
-| **3** | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | **3** |
-| **4** | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/white/pawn.svg" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | **4** |
-| **5** | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | **5** |
-| **6** | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | <img src="img/blank.png" width=50px> | **6** |
-| **7** | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | <img src="img/black/pawn.svg" width=50px> | **7** |
-| **8** | <img src="img/black/rook.svg" width=50px> | <img src="img/black/knight.svg" width=50px> | <img src="img/black/bishop.svg" width=50px> | <img src="img/black/king.svg" width=50px> | <img src="img/black/queen.svg" width=50px> | <img src="img/black/bishop.svg" width=50px> | <img src="img/black/knight.svg" width=50px> | <img src="img/black/rook.svg" width=50px> | **8** |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|---|
+| **1** | <img src="img/white/rook.svg" width="50px"> | <img src="img/white/knight.svg" width="50px"> | <img src="img/white/bishop.svg" width="50px"> | <img src="img/white/king.svg" width="50px"> | <img src="img/white/queen.svg" width="50px"> | <img src="img/white/bishop.svg" width="50px"> | <img src="img/white/knight.svg" width="50px"> | <img src="img/white/rook.svg" width="50px"> | **1** |
+| **2** | <img src="img/white/pawn.svg" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | **2** |
+| **3** | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | **3** |
+| **4** | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/white/pawn.svg" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | **4** |
+| **5** | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | **5** |
+| **6** | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | <img src="img/blank.png" width="50px"> | **6** |
+| **7** | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | <img src="img/black/pawn.svg" width="50px"> | **7** |
+| **8** | <img src="img/black/rook.svg" width="50px"> | <img src="img/black/knight.svg" width="50px"> | <img src="img/black/bishop.svg" width="50px"> | <img src="img/black/king.svg" width="50px"> | <img src="img/black/queen.svg" width="50px"> | <img src="img/black/bishop.svg" width="50px"> | <img src="img/black/knight.svg" width="50px"> | <img src="img/black/rook.svg" width="50px"> | **8** |
 |   | **H** | **G** | **F** | **E** | **D** | **C** | **B** | **A** |   |
 <!-- END CHESS BOARD -->
 
-**It's your turn to move! Choose one from the following table**
+### Available Moves
+
+Choose a move from the table below by clicking its destination. Submit the generated GitHub Issue to register your move.
+
 <!-- BEGIN MOVES LIST -->
-|  FROM  | TO (Just click a link!) |
-| :----: | :---------------------- |
+| FROM | TO |
+|:---:|:---|
 | **A7** | [A5](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+A7+to+A5), [A6](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+A7+to+A6) |
 | **B7** | [B5](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+B7+to+B5), [B6](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+B7+to+B6) |
 | **B8** | [A6](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+B8+to+A6), [C6](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+B8+to+C6) |
@@ -33,33 +41,38 @@ It's your turn to play! Move a <!-- BEGIN TURN -->black<!-- END TURN --> piece.
 | **H7** | [H5](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+H7+to+H5), [H6](https://github.com/player1/player1/issues/new?body=Please+do+not+change+the+title.+Just+click+%22Submit+new+issue%22.+You+don%27t+need+to+do+anything+else+%3AD&title=Chess%3A+Move+H7+to+H6) |
 <!-- END MOVES LIST -->
 
-Having fun? Ask a friend to do the next move!
+Having fun? Invite a friend to make the next move!
 
-#### How it works
+## How It Works
 
-When you click on a link and submit a new issue with the desired move, a GitHub action is triggered, which in turn runs a small python script that performs the specified movement, updates this README file and commits the changes.
+1. Select one of the available moves.
+2. Submit the generated GitHub Issue without changing its title.
+3. A GitHub Action processes the move using the project's Python script.
+4. The board, available moves, and game history are updated in the README.
 
-Have you spotted a bug? Something missing? Feel free to open an [issue](https://github.com/marcizhu/readme-chess/issues) and I will try to fix it as soon as possible :D
-
+## Game History
 
 <details>
-  <summary>Last 5 moves in this game</summary>
-  <!-- BEGIN LAST MOVES -->
+  <summary>Last 5 moves</summary>
+
+<!-- BEGIN LAST MOVES -->
 
 | Move | Author |
-| :--: | :----- |
-| `E2` to `E4` | [ @player2](https://github.com/player2) |
-| `Start game` | [ @player1](https://github.com/player1) |
+|:---:|:---|
+| `E2` to `E4` | [@player2](https://github.com/player2) |
+| `Start game` | [@player1](https://github.com/player1) |
 
 <!-- END LAST MOVES -->
+
 </details>
 
 <details>
-  <summary>Top 10 most moves across all games</summary>
-  <!-- BEGIN TOP MOVES -->
+  <summary>Top 10 players by number of moves</summary>
 
-| Total moves |  User  |
-| :---------: | :----- |
+<!-- BEGIN TOP MOVES -->
+
+| Total moves | User |
+|:---:|:---|
 | 692 | [@JohnyP36](https://github.com/JohnyP36) |
 | 680 | [@Stockfish](https://github.com/Stockfish) |
 | 675 | [@AlphaZero](https://github.com/AlphaZero) |
@@ -72,9 +85,14 @@ Have you spotted a bug? Something missing? Feel free to open an [issue](https://
 | 122 | [@the1Riddle](https://github.com/the1Riddle) |
 
 <!-- END TOP MOVES -->
+
 </details>
 
----
+## Contributing
 
-Do you want to make your own? Check out my [readme chess template](https://github.com/marcizhu/readme-chess)!
-![](https://hit.yhype.me/github/profile?user_id=6199781)
+Found a bug or have an idea for an improvement? Open an [issue](https://github.com/marcizhu/readme-chess/issues). Contributions and suggestions are welcome.
+
+## Credits
+
+This project is based on the [readme-chess template](https://github.com/marcizhu/readme-chess), created by [@marcizhu](https://github.com/marcizhu).
+
